@@ -15,9 +15,11 @@ experiment_name = 'neat_demo'
 if not os.path.exists(experiment_name):
     os.makedirs(experiment_name)
 
+enemy_level = 7
+
 # initializes training simulation in individual evolution mode, for single static enemy.
 TRAINING_ENV = Environment(experiment_name=experiment_name,
-                enemies=[1],
+                enemies=[enemy_level],
                 playermode="ai",
                 player_controller=player_controller(),
                 enemymode="static",
@@ -56,7 +58,7 @@ def run(config_file):
     print('\nOutput:')
     winner_net = neat.nn.FeedForwardNetwork.create(winner, config)
     eval_env = Environment(experiment_name=experiment_name,
-                enemies=[1],
+                enemies=[enemy_level],
                 playermode="ai",
                 player_controller=player_controller(),
                 enemymode="static",
