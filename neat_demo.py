@@ -12,7 +12,7 @@ from neat_controller import player_controller
 import time as tm
 import neat, visualize, pygame, pickle
 
-experiment_name = 'NEAT_specialized_agent_7'
+experiment_name = 'NEAT_specialized_agent_7_demo'
 if not os.path.exists(experiment_name):
     os.makedirs(experiment_name)
 
