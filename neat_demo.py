@@ -12,13 +12,14 @@ from neat_controller import player_controller
 import time as tm
 import neat, visualize, pygame, pickle
 
-experiment_name = 'NEAT_specialized_agent_7_demo'
+# Initialize our parameters for specialized agent
+enemy_level = 1
+generations = 30
+
+# Initialize experiment
+experiment_name = 'NEAT_specialized_agent_' + str(enemy_level)
 if not os.path.exists(experiment_name):
     os.makedirs(experiment_name)
-
-# Initialize our parameters for specialized agent
-enemy_level = 7
-generations = 10
 
 # initializes output directory and training simulation in individual evolution mode, for single static enemy.
 OUTPUT_DIR = './' + experiment_name + '/'
@@ -60,7 +61,8 @@ def run(config_file):
     # Create the population, which is the top-level object for a NEAT run.
     p = neat.Population(config)
 
-    # Add a stdout reporter to show progress in the terminal.
+    # Add a stdout reporter to show progress in the terminal and save concurrently as txt file.
+    sys.stdout = open(OUTPUT_DIR + experiment_name + "_log.txt", "w")
     p.add_reporter(neat.StdOutReporter(True))
     stats = neat.StatisticsReporter()
     p.add_reporter(stats)
@@ -87,6 +89,7 @@ def run(config_file):
                 speed="normal")
     fitness, player_life, enemy_life, time = eval_env.play(pcont=winner_net)
     quit_environment()
+    sys.stdout.close()
     # Visualization of the experiment
     node_names = {0: 'Left', 1: 'Right', 2: 'Jump', 3: 'Shoot', 4: 'Release'}
     visualize_results(config, winner, stats, node_names=node_names)
