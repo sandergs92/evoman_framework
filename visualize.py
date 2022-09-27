@@ -5,16 +5,21 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 
-def plot_stats(statistics, ylog=False, view=False, filename='avg_fitness.svg', file_dir=None):
+def plot_stats(statistics, simple_ga=False,ylog=False, view=False, filename='avg_fitness.svg', file_dir=None):
     """ Plots the population's average and best fitness. """
     if plt is None:
         warnings.warn("This display is not available due to a missing optional dependency (matplotlib)")
         return
-
-    generation = range(len(statistics.most_fit_genomes))
-    best_fitness = [c.fitness for c in statistics.most_fit_genomes]
-    avg_fitness = np.array(statistics.get_fitness_mean())
-    stdev_fitness = np.array(statistics.get_fitness_stdev())
+    if not simple_ga:
+        generation = range(len(statistics.most_fit_genomes))
+        best_fitness = [c.fitness for c in statistics.most_fit_genomes]
+        avg_fitness = np.array(statistics.get_fitness_mean())
+        stdev_fitness = np.array(statistics.get_fitness_stdev())
+    else:
+        generation = range(len(statistics.keys()))
+        best_fitness = np.array([statistics[k]['max_f'] for k, v in statistics.items()])
+        avg_fitness = np.array([statistics[k]['avg_f'] for k, v in statistics.items()])
+        stdev_fitness = np.array([statistics[k]['std_f'] for k, v in statistics.items()])
 
     plt.plot(generation, avg_fitness, 'b-', label="average")
     plt.plot(generation, avg_fitness - stdev_fitness, 'g-.', label="-1 sd")
