@@ -5,7 +5,7 @@
 ################################
 
 # imports framework
-import sys, os, random, copy, math, pickle, visualize
+import sys, os, random, copy, math, pickle
 import numpy as np
 import matplotlib.pyplot as plt
 sys.path.insert(0, 'evoman') 
@@ -18,8 +18,9 @@ if headless:
     os.environ["SDL_VIDEODRIVER"] = "dummy"
 
 # Init experiment
-enemy_level = 8
-experiment_name = 'simple_ea_specialized_agent_' + str(enemy_level)
+enemy = 4
+n_experiments = 10
+experiment_name = 'simple_ea_specialized_agent_' + str(enemy)
 OUTPUT_DIR = './' + experiment_name + '/'
 if not os.path.exists(experiment_name):
     os.makedirs(experiment_name)
@@ -33,11 +34,11 @@ max_value = 1
 n_hidden_neurons = 3
     # initializes environment with ai player using random controller, playing against static enemy
 env = Environment(experiment_name=experiment_name,
-                  enemies=[enemy_level],
+                  enemies=[enemy],
                   playermode="ai",
                   player_controller=player_controller(n_hidden_neurons),
                   enemymode="static",
-                  level=1,
+                  level=2,
                   speed="fastest")
 n_weights = (env.get_num_sensors()+1)*n_hidden_neurons+(n_hidden_neurons+1)*5
 # Operator parameters
@@ -50,11 +51,11 @@ def initialise_population()->np.ndarray:
 
 def evalualate_pop(population: np.ndarray):
     """Function to evaluate current population """
-    res_pop = np.array([])
+    fit_pop = np.array([])
     for agent in population:
         fitness, player_life, enemy_life, time = env.play(pcont=agent)
-        res_pop = np.append(res_pop, fitness)
-    return res_pop
+        fit_pop = np.append(fit_pop, fitness)
+    return fit_pop
     
 def tournament_selection(population: np.ndarray, fitness_population, k:int)->np.ndarray:
     """Function takes a population and a k individuals as input, hosts a tournament and returns population with winners."""
@@ -94,30 +95,33 @@ def mutation(population: np.ndarray, m_rate:int)->np.ndarray:
 
 def evo_run():
     """Evolutionary Algorithm loop function"""
-    stats = dict()
-    current_pop = initialise_population()
-    for g in range(0, n_generations):
-        print(f"Current generation: {g}") 
-        # Evaluate
-        current_pop_f = evalualate_pop(current_pop)
-        # Add entry to stats
-        stats[g] = {
-            'max_f' : np.max(current_pop_f),
-            'min_f' : np.min(current_pop_f),
-            'avg_f' : np.mean(current_pop_f),
-            'std_f' : np.std(current_pop_f),
-            'pop' : current_pop,
-            'pop_f' : current_pop_f,
-            'best_individual' : current_pop[np.argmax(current_pop_f)]
-        }
-        print('Max f:', np.max(current_pop_f), ' Min f:', np.min(current_pop_f), ' Avg f:', np.mean(current_pop_f), ' std_f f:', np.std(current_pop_f))
-        # Parent selection
-        current_pop = tournament_selection(current_pop, current_pop_f, k_individuals)
-        # Cross-over
-        current_pop = two_point_crossover(current_pop)
-        # Mutation
-        current_pop = mutation(current_pop, mutation_rate)
-    pickle.dump(stats, open(OUTPUT_DIR + 'populations_object', 'wb'))
-    visualize.plot_stats(stats, simple_ga=True, file_dir=OUTPUT_DIR)
+    experiment_stats = dict()
+    for e in range(0, n_experiments):
+        stats = dict()
+        current_pop = initialise_population()
+        for g in range(0, n_generations):
+            print('Experiment run:', e, 'Generation:', g)
+            # Evaluate
+            current_pop_f = evalualate_pop(current_pop)
+            # Add entry to stats
+            stats[g] = {
+                'max_f' : np.max(current_pop_f),
+                'min_f' : np.min(current_pop_f),
+                'avg_f' : np.mean(current_pop_f),
+                'std_f' : np.std(current_pop_f),
+                'pop' : current_pop,
+                'pop_f' : current_pop_f,
+                'best_individual' : current_pop[np.argmax(current_pop_f)]
+            }
+            print('Max f:', np.max(current_pop_f), ' Min f:', np.min(current_pop_f), ' Avg f:', np.mean(current_pop_f), ' std_f f:', np.std(current_pop_f))
+            # Parent selection
+            current_pop = tournament_selection(current_pop, current_pop_f, k_individuals)
+            # Cross-over
+            current_pop = two_point_crossover(current_pop)
+            # Mutation
+            current_pop = mutation(current_pop, mutation_rate)
+        experiment_stats[e] = stats
+    pickle.dump(experiment_stats, open(OUTPUT_DIR + 'simple_ea_experiment_runs', 'wb'))
+    # visualize.plot_stats(stats, simple_ga=True, file_dir=OUTPUT_DIR)
 
 evo_run()
