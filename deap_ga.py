@@ -28,7 +28,7 @@ if not os.path.exists(experiment_name):
 # global training parameters
 n_experiments = 10
 n_population = 100
-n_generations = 300
+n_generations = 800
 min_value = -1
 max_value = 1
 # Neural net parameters
@@ -78,27 +78,46 @@ toolbox.register("select", tools.selNSGA3, ref_points=ref_points)
 ##
 
 def main(seed=None):
-    for e in range(0, n_experiments):
-        print("EXPERIMENT RUN: ", e)
-        experiment_stats = dict()
-        hof = 0
-        hof_f = (0.0, 0.0, 0.0)
-        random.seed(seed)
+    e = 4
+    print("EXPERIMENT RUN: ", e)
+    experiment_stats = dict()
+    hof = 0
+    hof_f = (0.0, 0.0, 0.0)
+    random.seed(seed)
 
-        # Initialize statistics object
-        stats = tools.Statistics(lambda ind: ind.fitness.values)
-        stats.register("avg", np.mean, axis=0)
-        stats.register("std", np.std, axis=0)
-        stats.register("min", np.min, axis=0)
-        stats.register("max", np.max, axis=0)
+    # Initialize statistics object
+    stats = tools.Statistics(lambda ind: ind.fitness.values)
+    stats.register("avg", np.mean, axis=0)
+    stats.register("std", np.std, axis=0)
+    stats.register("min", np.min, axis=0)
+    stats.register("max", np.max, axis=0)
 
-        logbook = tools.Logbook()
-        logbook.header = "gen", "evals", "std", "min", "avg", "max"
+    logbook = tools.Logbook()
+    logbook.header = "gen", "evals", "std", "min", "avg", "max"
 
-        pop = toolbox.population(n=n_population)
+    pop = toolbox.population(n=n_population)
+
+    # Evaluate the individuals with an invalid fitness
+    invalid_ind = [ind for ind in pop if not ind.fitness.valid]
+    fitnesses = toolbox.map(toolbox.evaluate, invalid_ind)
+    for ind, fit in zip(invalid_ind, fitnesses):
+        ind.fitness.values = fit
+        if ind.fitness.values[0] > hof_f[0] and ind.fitness.values[1] > hof_f[1] and ind.fitness.values[2] > hof_f[2]:
+            hof = ind
+            hof_f = ind.fitness.values
+
+    # Compile statistics about the population
+    record = stats.compile(pop)
+    logbook.record(gen=0, evals=len(invalid_ind), **record)
+    print(logbook.stream)
+    experiment_stats[0] = pop
+
+    # Begin the generational process
+    for idx, gen in enumerate(range(1, n_generations)):
+        offspring = algorithms.varAnd(pop, toolbox, 1.0, 1.0)
 
         # Evaluate the individuals with an invalid fitness
-        invalid_ind = [ind for ind in pop if not ind.fitness.valid]
+        invalid_ind = [ind for ind in offspring if not ind.fitness.valid]
         fitnesses = toolbox.map(toolbox.evaluate, invalid_ind)
         for ind, fit in zip(invalid_ind, fitnesses):
             ind.fitness.values = fit
@@ -106,38 +125,19 @@ def main(seed=None):
                 hof = ind
                 hof_f = ind.fitness.values
 
-        # Compile statistics about the population
+        # Select the next generation population from parents and offspring
+        pop = toolbox.select(pop + offspring, n_population)
+
+        # Compile statistics about the new population
         record = stats.compile(pop)
-        logbook.record(gen=0, evals=len(invalid_ind), **record)
+        logbook.record(gen=gen, evals=len(invalid_ind), **record)
         print(logbook.stream)
-        experiment_stats[0] = pop
+        experiment_stats[idx + 1] = pop
 
-        # Begin the generational process
-        for idx, gen in enumerate(range(1, n_generations)):
-            offspring = algorithms.varAnd(pop, toolbox, 1.0, 1.0)
-
-            # Evaluate the individuals with an invalid fitness
-            invalid_ind = [ind for ind in offspring if not ind.fitness.valid]
-            fitnesses = toolbox.map(toolbox.evaluate, invalid_ind)
-            for ind, fit in zip(invalid_ind, fitnesses):
-                ind.fitness.values = fit
-                if ind.fitness.values[0] > hof_f[0] and ind.fitness.values[1] > hof_f[1] and ind.fitness.values[2] > hof_f[2]:
-                    hof = ind
-                    hof_f = ind.fitness.values
-
-            # Select the next generation population from parents and offspring
-            pop = toolbox.select(pop + offspring, n_population)
-
-            # Compile statistics about the new population
-            record = stats.compile(pop)
-            logbook.record(gen=gen, evals=len(invalid_ind), **record)
-            print(logbook.stream)
-            experiment_stats[idx + 1] = pop
-
-        experiment_stats['logbook'] = logbook
-        experiment_stats['hof'] = hof
-        experiment_stats['hof_f'] = hof_f
-        pickle.dump(experiment_stats, open(OUTPUT_DIR + 'deap_stats_object_' + str(e), 'wb'))
+    experiment_stats['logbook'] = logbook
+    experiment_stats['hof'] = hof
+    experiment_stats['hof_f'] = hof_f
+    pickle.dump(experiment_stats, open(OUTPUT_DIR + 'deap_stats_object_' + str(e), 'wb'))
 
 if __name__ == "__main__":
     main()
